@@ -1,8 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
@@ -10,4 +5,31 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model users {
+  id         BigInt   @id @default(autoincrement())
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model wuwa_regions {
+  id              BigInt            @id(map: "regions_pkey") @default(autoincrement())
+  name            String?
+  wuwa_waveplates wuwa_waveplates[]
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model wuwa_waveplates {
+  id                  BigInt       @id @default(autoincrement())
+  created_at          DateTime     @default(now()) @db.Timestamptz(6)
+  energy              Int          @db.SmallInt
+  max_energy          Int          @default(240) @db.SmallInt
+  store_energy        Int          @db.SmallInt
+  max_store_energy    Int          @default(480) @db.SmallInt
+  energy_recover_time BigInt
+  player_id           BigInt
+  region_id           BigInt
+  wuwa_regions        wuwa_regions @relation(fields: [region_id], references: [id], onDelete: Cascade)
 }
