@@ -1,4 +1,4 @@
-import Fastify, { FastifyError, FastifyReply, FastifyRequest } from 'fastify';
+import Fastify, { FastifyError, FastifyRequest } from 'fastify';
 import 'dotenv/config';
 import { connectorRoutes } from './routes/connectors/connectors.js';
 import { log, LOG_LEVEL } from './utils/logger.js';
@@ -13,11 +13,12 @@ fastify.addHook('onRequest', async (request, reply) => {
   }
 });
 
-fastify.addHook('onError', async (request: FastifyRequest, reply: FastifyReply, error: FastifyError) => {
-  await log(`${request.method} ${request.url} - ${error.message}`, LOG_LEVEL.ERROR);
-  reply.code(500).send({
-    error: error.message
-  });
+fastify.addHook('onError', async (request: FastifyRequest, _, error: FastifyError) => {
+  log(`${request.method} ${request.url} - ${error.message}`, LOG_LEVEL.ERROR);
+});
+
+fastify.addHook('preSerialization', async (request, reply, payload) => {
+  return JSON.parse(JSON.stringify(payload, (_, value) => (typeof value === 'bigint' ? value.toString() : value)));
 });
 
 fastify.register(prismaPlugin);
