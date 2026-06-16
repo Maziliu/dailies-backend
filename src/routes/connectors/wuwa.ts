@@ -1,4 +1,4 @@
-import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import { FastifyInstance } from 'fastify';
 import { WUWA_REGIONS } from '../../enums/wuwa_regions.js';
 
 export async function wuwaRoutes(server: FastifyInstance) {
@@ -26,9 +26,24 @@ export async function wuwaRoutes(server: FastifyInstance) {
     reply.code(200).send({ messaage: `Successfully updated waveplates for ${playerId} ${region}` });
   });
 
-  server.get('/wuwa', (request: FastifyRequest, reply: FastifyReply) => {
-    reply.code(200).send({
-      message: 'Hello'
+  server.post<{ Body: { playerId: number } }>('/wuwa/waveplates', async (request, reply) => {
+    const { playerId } = request.body;
+
+    if (!playerId) {
+      reply.code(400).send({
+        error: 'Missing playerId'
+      });
+    }
+
+    const waveplates = await server.prisma.wuwa_waveplates.findFirst({
+      where: { player_id: playerId },
+      orderBy: { created_at: 'desc' }
     });
+
+    if (!waveplates) {
+      reply.code(404).send({ error: `No waveplate data found for player ${playerId}` });
+    }
+
+    reply.code(200).send(waveplates);
   });
 }
