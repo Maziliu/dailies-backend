@@ -13,7 +13,7 @@ export async function wuwaRoutes(server: FastifyInstance) {
   server.post<{ Body: ConnectorWaveplatePayload }>('/wuwa/sync-waveplates', async (request, reply) => {
     const { playerId, region, energy, storeEnergy, energyRecoveryTimeInMS } = request.body;
 
-    await server.prisma.wuwa_waveplates.create({
+    const inserted = await server.prisma.wuwa_waveplates.create({
       data: {
         player_id: playerId,
         region_id: WUWA_REGIONS[region.toUpperCase() as keyof typeof WUWA_REGIONS],
@@ -23,7 +23,7 @@ export async function wuwaRoutes(server: FastifyInstance) {
       }
     });
 
-    reply.code(200).send({ messaage: `Successfully updated waveplates for ${playerId} ${region}` });
+    reply.code(200).send(inserted);
   });
 
   server.post<{ Body: { playerId: number } }>('/wuwa/waveplates', async (request, reply) => {
