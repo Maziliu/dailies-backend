@@ -1,6 +1,5 @@
 import { FastifyInstance } from 'fastify';
 import { WUWA_REGIONS } from '../../enums/wuwa_regions.js';
-import { log } from '../../utils/logger.js';
 
 export async function wuwaRoutes(server: FastifyInstance) {
   interface ConnectorWaveplatePayload {
