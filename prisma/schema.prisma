@@ -16,8 +16,8 @@ model users {
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model wuwa_regions {
   id              BigInt            @id(map: "regions_pkey") @default(autoincrement())
-  name            String?
-  server_id       String?
+  name            String
+  server_id       String
   wuwa_profiles   wuwa_profiles[]
   wuwa_waveplates wuwa_waveplates[]
 }
@@ -43,5 +43,6 @@ model wuwa_profiles {
   level        Int
   name         String       @db.VarChar
   region_id    BigInt
+  internal_id  BigInt?      @unique
   wuwa_regions wuwa_regions @relation(fields: [region_id], references: [id], onDelete: NoAction)
 }
