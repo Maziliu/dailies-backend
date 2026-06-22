@@ -43,7 +43,7 @@ model wuwa_profiles {
   level        Int
   name         String       @db.VarChar
   region_id    BigInt
-  internal_id  BigInt       @unique
+  internal_id  BigInt
   id           BigInt       @id @default(autoincrement())
   wuwa_regions wuwa_regions @relation(fields: [region_id], references: [id], onDelete: NoAction)
 }

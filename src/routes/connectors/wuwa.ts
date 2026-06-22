@@ -35,8 +35,8 @@ export async function wuwaRoutes(server: FastifyInstance) {
 
     let resolvedPlayerId: bigint | null = playerId ? BigInt(playerId) : null;
     if (!resolvedPlayerId) {
-      const profile = await server.prisma.wuwa_profiles.findUnique({
-        where: { internal_id: BigInt(internalId) }
+      const profile = await server.prisma.wuwa_profiles.findFirst({
+        where: { internal_id: BigInt(internalId), region_id: regionId }
       });
 
       if (!profile) return reply.code(404).send({ error: 'PlayerId not sent and not found in database' });
