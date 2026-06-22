@@ -39,10 +39,11 @@ model wuwa_waveplates {
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model wuwa_profiles {
   created_at   DateTime     @default(now()) @db.Timestamptz(6)
-  player_id    BigInt       @id @unique
+  player_id    BigInt       @unique
   level        Int
   name         String       @db.VarChar
   region_id    BigInt
-  internal_id  BigInt?      @unique
+  internal_id  BigInt       @unique
+  id           BigInt       @id @default(autoincrement())
   wuwa_regions wuwa_regions @relation(fields: [region_id], references: [id], onDelete: NoAction)
 }
