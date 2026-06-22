@@ -1,42 +1,53 @@
 import { FastifyInstance } from 'fastify';
 import { WUWA_REGIONS } from '../../enums/wuwa_regions.js';
+import { fetchPlayerDataFromKuro } from '../../utils/kuro.js';
 
 export async function wuwaRoutes(server: FastifyInstance) {
   interface ConnectorWaveplatePayload {
     playerId?: number;
-    level: number;
-    name: string;
-    region: string;
-    energy: number;
-    storeEnergy: number;
-    energyRecoveryTimeInMS: number;
+    oauthCode: string;
     userInfoURL: string;
   }
 
   server.post<{ Body: ConnectorWaveplatePayload }>('/wuwa/sync-waveplates', async (request, reply) => {
-    const { playerId, level, name, region, energy, storeEnergy, energyRecoveryTimeInMS, userInfoURL } = request.body;
+    const { playerId, oauthCode, userInfoURL } = request.body;
+
+    const kuroPlayerData = await fetch(userInfoURL);
+    if (!kuroPlayerData) return reply.code(400).send({ error: 'Could not retrieve player data from Kuro' });
+
+    const {
+      UserInfos: [{ Region: region, Level: level }]
+    } = await kuroPlayerData.json();
+
+    const playerData = await fetchPlayerDataFromKuro(oauthCode, playerId, region);
+
+    if (!playerData) return reply.code(400).send({ error: 'Failed to fetch data from Kuro' });
+
+    const {
+      Base: { Energy: energy, StoreEnergy: storeEnergy, EnergyRecoverTime: energyRecoveryTimeInMS, Name: name }
+    } = playerData;
 
     const regionId = WUWA_REGIONS[region.toUpperCase() as keyof typeof WUWA_REGIONS];
-    if (!regionId) reply.code(400).send({ error: `Unknown region: ${region}` });
+    if (!regionId) return reply.code(400).send({ error: `Unknown region: ${region}` });
+
+    const internalId = new URL(userInfoURL).searchParams.get('userId');
+    if (!internalId) return reply.code(400).send({ error: 'PlayerId is not sent and userId is not found in userInfoURL' });
 
     let resolvedPlayerId: bigint | null = playerId ? BigInt(playerId) : null;
     if (!resolvedPlayerId) {
-      const internalId = new URL(userInfoURL).searchParams.get('userId');
-      if (!internalId) reply.code(400).send({ error: 'PlayerId is not sent and userId is not found in userInfoURL' });
-
       const profile = await server.prisma.wuwa_profiles.findUnique({
         where: { internal_id: BigInt(internalId) }
       });
 
-      if (!profile) reply.code(404).send({ error: 'PlayerId not sent and not found in database' });
+      if (!profile) return reply.code(404).send({ error: 'PlayerId not sent and not found in database' });
       resolvedPlayerId = profile.player_id;
     }
 
     const [, inserted] = await server.prisma.$transaction([
       server.prisma.wuwa_profiles.upsert({
-        where: { player_id: resolvedPlayerId },
-        update: { level, name, region_id: regionId },
-        create: { player_id: resolvedPlayerId, level, name, region_id: regionId }
+        where: { player_id: resolvedPlayerId, region_id: regionId },
+        update: { level, name },
+        create: { player_id: resolvedPlayerId, level, name, region_id: regionId, internal_id: BigInt(internalId) }
       }),
       server.prisma.wuwa_waveplates.create({
         data: {
@@ -49,7 +60,7 @@ export async function wuwaRoutes(server: FastifyInstance) {
       })
     ]);
 
-    reply.code(200).send(inserted);
+    return reply.code(200).send(inserted);
   });
 
   server.post<{ Body: { playerId: number } }>('/wuwa/waveplates', async (request, reply) => {
