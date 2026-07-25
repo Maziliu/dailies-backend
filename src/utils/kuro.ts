@@ -1,3 +1,5 @@
+import { WUWA_REGIONS } from '../enums/wuwa_regions.js';
+
 const MAX_RETRIES = 5;
 
 export interface KuroPlayerData {
@@ -110,4 +112,30 @@ export async function fetchPlayerDataFromKuro(oauthCode: string, playerId: numbe
 
     await new Promise((resolve) => setTimeout(resolve, 2000));
   }
+}
+
+export function determinePlayerRegion(playerId: number): WUWA_REGIONS | null {
+  const firstDigit = playerId.toString()[0];
+
+  switch (firstDigit) {
+    case '5':
+      return WUWA_REGIONS.AMERICA;
+    case '6':
+      return WUWA_REGIONS.EUROPE;
+    case '7':
+      return WUWA_REGIONS.ASIA;
+    case '8':
+      return WUWA_REGIONS.HMT;
+    case '9':
+      return WUWA_REGIONS.SEA;
+
+    default:
+      return null;
+  }
+}
+
+export interface RegionData {
+  Region: string;
+  Level: number;
+  LastOnlineTime: number;
 }
