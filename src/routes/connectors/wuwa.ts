@@ -29,7 +29,7 @@ export async function wuwaRoutes(server: FastifyInstance) {
     const kuroPlayerData = await fetch(userInfoURL);
     if (!kuroPlayerData.ok) return reply.code(400).send({ error: 'Could not retrieve player data from Kuro' });
 
-    const { userInfos }: { userInfos: RegionData[] } = await kuroPlayerData.json();
+    const { UserInfos: userInfos }: { UserInfos: RegionData[] } = await kuroPlayerData.json();
     const match = userInfos.find((data) => data.Region === region);
     if (!match) return reply.code(404).send({ error: `No level data exists for ${region}` });
     const { Level: level } = match;
