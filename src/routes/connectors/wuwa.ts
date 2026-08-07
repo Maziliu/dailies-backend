@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify';
 import { WUWA_REGIONS } from '../../enums/wuwa_regions.js';
-import { determinePlayerRegion, fetchPlayerDataFromKuro, RegionData } from '../../utils/kuro.js';
+import { Convene, determinePlayerRegion, fetchConveneDataFromKuro, fetchPlayerDataFromKuro, RegionData } from '../../utils/kuro.js';
 
 export async function wuwaRoutes(server: FastifyInstance) {
   interface ConnectorWaveplatePayload {
@@ -8,6 +8,34 @@ export async function wuwaRoutes(server: FastifyInstance) {
     oauthCode: string;
     userInfoURL: string;
   }
+
+  interface ConnectorConvenePayload {
+    conveneURL: string;
+  }
+
+  server.post<{ Body: ConnectorConvenePayload }>('/wuwa/sync-convene', async (request, reply) => {
+    const { conveneURL } = request.body;
+
+    const url = new URL(conveneURL);
+    const playerId = Number(url.searchParams.get('playerId'));
+
+    const conveneHistory: Convene[] = await fetchConveneDataFromKuro(playerId, url.searchParams.get('serverId'), url.searchParams.get('recordId'));
+
+    const inserted = await server.prisma.wuwa_convenes.createMany({
+      data: conveneHistory.map((convene) => ({
+        time: new Date(convene.Timestamp),
+        banner_id: Number(convene.BannerTypeId),
+        resource_id: convene.ResourceId,
+        quality: convene.Quality,
+        convene_type: convene.ConveneType,
+        name: convene.Name,
+        player_id: playerId
+      })),
+      skipDuplicates: true
+    });
+
+    return reply.code(200).send(inserted);
+  });
 
   server.post<{ Body: ConnectorWaveplatePayload }>('/wuwa/sync-waveplates', async (request, reply) => {
     const { playerId, oauthCode, userInfoURL } = request.body;

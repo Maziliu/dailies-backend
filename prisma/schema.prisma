@@ -14,6 +14,34 @@ model users {
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model wuwa_convenes {
+  id            BigInt        @id @default(autoincrement())
+  time          DateTime      @db.Timestamptz(6)
+  banner_id     Int           @db.SmallInt
+  resource_id   Int
+  quality       Int           @db.SmallInt
+  convene_type  String
+  name          String
+  player_id     BigInt
+  wuwa_profiles wuwa_profiles @relation(fields: [player_id], references: [player_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([player_id, banner_id, resource_id, time], map: "wuwa_convenes_player_banner_resource_time_key")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model wuwa_profiles {
+  created_at    DateTime        @default(now()) @db.Timestamptz(6)
+  player_id     BigInt          @unique
+  level         Int
+  name          String          @db.VarChar
+  region_id     BigInt
+  internal_id   BigInt
+  id            BigInt          @id @default(autoincrement())
+  wuwa_convenes wuwa_convenes[]
+  wuwa_regions  wuwa_regions    @relation(fields: [region_id], references: [id], onDelete: NoAction)
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model wuwa_regions {
   id              BigInt            @id(map: "regions_pkey") @default(autoincrement())
   name            String
@@ -34,16 +62,4 @@ model wuwa_waveplates {
   player_id           BigInt
   region_id           BigInt
   wuwa_regions        wuwa_regions @relation(fields: [region_id], references: [id], onDelete: Cascade)
-}
-
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
-model wuwa_profiles {
-  created_at   DateTime     @default(now()) @db.Timestamptz(6)
-  player_id    BigInt       @unique
-  level        Int
-  name         String       @db.VarChar
-  region_id    BigInt
-  internal_id  BigInt
-  id           BigInt       @id @default(autoincrement())
-  wuwa_regions wuwa_regions @relation(fields: [region_id], references: [id], onDelete: NoAction)
 }
