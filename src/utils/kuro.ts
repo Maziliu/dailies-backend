@@ -96,6 +96,12 @@ interface Decoration {
   OrGroupId: number;
 }
 
+export interface RegionData {
+  Region: string;
+  Level: number;
+  LastOnlineTime: number;
+}
+
 export async function fetchPlayerDataFromKuro(oauthCode: string, playerId: number, region: string): Promise<KuroPlayerData | undefined> {
   for (let attempts = 0; attempts < MAX_RETRIES; attempts++) {
     const response = await fetch('https://pc-launcher-sdk-api.kurogame.net/game/queryRole', {
@@ -134,8 +140,49 @@ export function determinePlayerRegion(playerId: number): WUWA_REGIONS | null {
   }
 }
 
-export interface RegionData {
-  Region: string;
-  Level: number;
-  LastOnlineTime: number;
+const MAX_BANNER_ID = 13;
+
+enum ConveneType {
+  WEAPON = 'Weapon',
+  RESONATOR = 'Resonator'
+}
+
+export interface Convene {
+  BannerTypeId: number;
+  ResourceId: number;
+  Quality: number;
+  ConveneType: ConveneType;
+  Name: string;
+  Timestamp: string;
+}
+
+export async function fetchConveneDataFromKuro(playerId: number, serverId: string, recordId: string): Promise<Convene[]> {
+  const conveneHistory: Convene[] = [];
+  for (let bannerTypeId = 1; bannerTypeId <= MAX_BANNER_ID; bannerTypeId++) {
+    const response = await fetch('https://gmserver-api.aki-game2.net/gacha/record/query', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ playerId, serverId, recordId, languageCode: 'en', cardPoolType: bannerTypeId })
+    });
+
+    if (!response.ok) throw new Error(`Kuro HTTP error: ${response.status}`);
+
+    const raw = await response.json();
+    if (raw.code !== 0) continue;
+
+    raw.data.forEach((rawConvene) =>
+      conveneHistory.push({
+        BannerTypeId: bannerTypeId,
+        ResourceId: rawConvene.resourceId,
+        Quality: rawConvene.qualityLevel,
+        ConveneType: rawConvene.resourceType as ConveneType,
+        Name: rawConvene.name,
+        Timestamp: rawConvene.time
+      })
+    );
+  }
+
+  return conveneHistory;
 }
