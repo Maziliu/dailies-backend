@@ -24,7 +24,7 @@ export async function wuwaRoutes(server: FastifyInstance) {
 
     const inserted = await server.prisma.wuwa_convenes.createMany({
       data: conveneHistory.map((convene) => ({
-        time: new Date(convene.Timestamp),
+        time: convene.Timestamp.replace(' ', 'T') + 'Z',
         banner_id: Number(convene.BannerTypeId),
         resource_id: convene.ResourceId,
         quality: convene.Quality,
