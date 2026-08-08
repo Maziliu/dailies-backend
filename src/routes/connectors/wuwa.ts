@@ -110,10 +110,29 @@ export async function wuwaRoutes(server: FastifyInstance) {
     });
 
     if (!waveplates) {
-      reply.code(404).send({ error: `No waveplate data found for player ${playerId}` });
+      return reply.code(404).send({ error: `No waveplate data found for player ${playerId}` });
     }
 
-    reply.code(200).send(waveplates);
+    return reply.code(200).send(waveplates);
+  });
+
+  interface WaveplateHistoryQuery {
+    playerId: number;
+  }
+  server.get('/wuwa/waveplate-history', async (request, reply) => {
+    const { playerId } = request.query as WaveplateHistoryQuery;
+
+    if (!playerId) return reply.code(400).send({ error: 'Missing playerId' });
+    if (!isValidInteger(playerId)) return reply.code(400).send({ error: 'PlayerId is not a valid integer' });
+
+    const waveplateHistory = await server.prisma.wuwa_waveplates.findMany({
+      where: {
+        player_id: playerId
+      },
+      orderBy: { created_at: 'desc' }
+    });
+
+    return reply.code(200).send(waveplateHistory !== null ? waveplateHistory : []);
   });
 
   interface ConveneHistoryQuery {
@@ -137,6 +156,6 @@ export async function wuwaRoutes(server: FastifyInstance) {
       }
     });
 
-    return reply.code(200).send(conveneHistory);
+    return reply.code(200).send(conveneHistory !== null ? conveneHistory : []);
   });
 }
