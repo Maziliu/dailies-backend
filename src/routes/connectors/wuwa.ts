@@ -3,12 +3,6 @@ import { WUWA_REGIONS } from '../../enums/wuwa_regions.js';
 import { Convene, determinePlayerRegion, fetchConveneDataFromKuro, fetchPlayerDataFromKuro, RegionData } from '../../utils/kuro.js';
 
 export async function wuwaRoutes(server: FastifyInstance) {
-  interface ConnectorWaveplatePayload {
-    playerId: number;
-    oauthCode: string;
-    userInfoURL: string;
-  }
-
   interface ConnectorConvenePayload {
     conveneURL: string;
   }
@@ -42,6 +36,12 @@ export async function wuwaRoutes(server: FastifyInstance) {
 
     return reply.code(200).send(inserted);
   });
+
+  interface ConnectorWaveplatePayload {
+    playerId: number;
+    oauthCode: string;
+    userInfoURL: string;
+  }
 
   server.post<{ Body: ConnectorWaveplatePayload }>('/wuwa/sync-waveplates', async (request, reply) => {
     const { playerId, oauthCode, userInfoURL } = request.body;
@@ -107,5 +107,23 @@ export async function wuwaRoutes(server: FastifyInstance) {
     }
 
     reply.code(200).send(waveplates);
+  });
+
+  server.get('/wuwa/convene-history', async (request, reply) => {
+    const { playerId, bannerId } = request.query as { playerId: number; bannerId?: string };
+
+    if (!playerId) return reply.code(400).send({ error: 'Missing playerId' });
+
+    const conveneHistory = await server.prisma.wuwa_convenes.findMany({
+      where: {
+        player_id: playerId,
+        banner_id: Number(bannerId)
+      },
+      orderBy: {
+        time: 'desc'
+      }
+    });
+
+    return reply.code(200).send(conveneHistory);
   });
 }
