@@ -16,10 +16,16 @@ export async function wuwaRoutes(server: FastifyInstance) {
   server.post<{ Body: ConnectorConvenePayload }>('/wuwa/sync-convene', async (request, reply) => {
     const { conveneURL } = request.body;
 
-    const url = new URL(conveneURL);
-    const playerId = Number(url.searchParams.get('playerId'));
+    if (!conveneURL) return reply.code(400).send({ error: 'Missing conveneURL' });
 
-    const conveneHistory: Convene[] = await fetchConveneDataFromKuro(playerId, url.searchParams.get('serverId'), url.searchParams.get('recordId'));
+    const url = new URL(conveneURL);
+    const parameters = new URLSearchParams(url.hash.split('?')[1] ?? '');
+
+    const playerId = Number(parameters.get('player_id'));
+    const recordId = parameters.get('record_id');
+    const serverId = parameters.get('svr_id');
+
+    const conveneHistory: Convene[] = await fetchConveneDataFromKuro(playerId, serverId, recordId);
 
     const inserted = await server.prisma.wuwa_convenes.createMany({
       data: conveneHistory.map((convene) => ({
